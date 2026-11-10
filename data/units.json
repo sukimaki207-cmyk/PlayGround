@@ -1,0 +1,12 @@
+{
+  "units": [
+    {"id":"levy_spears","name":"Levy Spears","class":"spears","role":"Line holders","color":"#738779","accent":"#c8c0a3","count":48,"attack":7,"armor":7,"speed":44,"range":0,"accuracy":0,"morale":78,"discipline":72,"stamina":100,"ammo":0,"charge":5},
+    {"id":"field_archers","name":"Field Archers","class":"ranged","role":"Missile troops","color":"#ad815d","accent":"#d7c49b","count":38,"attack":9,"armor":3,"speed":42,"range":210,"accuracy":72,"morale":69,"discipline":68,"stamina":100,"ammo":24,"charge":3},
+    {"id":"banner_guard","name":"Banner Guard","class":"infantry","role":"Armored infantry","color":"#556779","accent":"#c6c5b7","count":44,"attack":12,"armor":11,"speed":38,"range":0,"accuracy":0,"morale":92,"discipline":86,"stamina":100,"ammo":0,"charge":8},
+    {"id":"dawn_lancers","name":"Dawn Lancers","class":"cavalry","role":"Shock cavalry","color":"#8d574b","accent":"#d0b979","count":32,"attack":13,"armor":9,"speed":66,"range":0,"accuracy":0,"morale":86,"discipline":78,"stamina":100,"ammo":0,"charge":22},
+    {"id":"fen_spears","name":"Fen Spearmen","class":"spears","role":"Pike line","color":"#79775c","accent":"#c3b898","count":46,"attack":8,"armor":8,"speed":40,"range":0,"accuracy":0,"morale":77,"discipline":73,"stamina":100,"ammo":0,"charge":5},
+    {"id":"redwood_bows","name":"Redwood Bows","class":"ranged","role":"War bowmen","color":"#825d4d","accent":"#c3aa82","count":40,"attack":10,"armor":3,"speed":42,"range":210,"accuracy":70,"morale":71,"discipline":72,"stamina":100,"ammo":24,"charge":3},
+    {"id":"iron_oath","name":"Iron Oath Guard","class":"infantry","role":"Heavy swordsmen","color":"#6e4445","accent":"#d0c0a0","count":42,"attack":13,"armor":10,"speed":37,"range":0,"accuracy":0,"morale":88,"discipline":82,"stamina":100,"ammo":0,"charge":9},
+    {"id":"blackthorn_riders","name":"Blackthorn Riders","class":"cavalry","role":"Mounted raiders","color":"#625348","accent":"#c29b67","count":34,"attack":12,"armor":8,"speed":62,"range":0,"accuracy":0,"morale":84,"discipline":76,"stamina":100,"ammo":0,"charge":19}
+  ]
+}
