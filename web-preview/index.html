@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#202723">
+  <title>Crown &amp; Banner: Ashes of Veyr</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #202723; }
+    body { color: #ddd0ae; font-family: Georgia, 'Times New Roman', serif; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <canvas id="battle" role="img" aria-label="Crown and Banner medieval battlefield. Select a regiment and issue orders."></canvas>
+  <script>
+  (() => {
+    'use strict';
+    const canvas = document.querySelector('#battle');
+    const ctx = canvas.getContext('2d');
+    const names = ['Levy Spears','Field Archers','Banner Guard','Dawn Lancers','Fen Spearmen','Redwood Bows','Iron Oath Guard','Blackthorn Riders'];
+    const colors = ['#738779','#ad815d','#556779','#8d574b','#79775c','#825d4d','#6e4445','#625348'];
+    const trim = ['#c8c0a3','#d7c49b','#c6c5b7','#d0b979','#c3b898','#c3aa82','#d0c0a0','#c29b67'];
+    const units = names.map((name,i) => ({name,color:colors[i],trim:trim[i],team:i<4?0:1,count:[48,38,44,32,46,40,42,34][i],morale:[78,69,92,86,77,71,88,84][i],order:i===0?'HOLD':i<4?'READY':'ADVANCE',x:i<4?[210,330,245,375][i]:[1060,940,1035,915][i-4],y:[200,325,430,245,205,345,435,270][i],speed:20+i*3}));
+    let selected=0, paused=false, fast=false, elapsed=0, last=performance.now(), mobile=false, W=0, H=0;
+    const gold='#d1b36d', paper='#ddd0ae', muted='#a99e84', dark='#202723';
+    function box(x,y,w,h,fill,stroke=null,r=0){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}}
+    function label(str,x,y,size,color=paper,align='left',font='Georgia, serif'){ctx.fillStyle=color;ctx.font=`${size}px ${font}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(str,x,y);}
+    function field(x,y,w,h){
+      const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#6d7955');g.addColorStop(.54,'#73805a');g.addColorStop(1,'#596d4e');ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+      ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+      for(let i=0;i<190;i++){const px=x+((i*97+31)%Math.max(1,w)),py=y+((i*53+19)%Math.max(1,h));ctx.fillStyle=i%4?'rgba(42,60,42,.16)':'rgba(190,174,120,.16)';ctx.fillRect(px,py,i%7===0?4:2,2);}
+      ctx.strokeStyle='rgba(213,197,150,.22)';ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(x+w*.34,y+h*.18);ctx.bezierCurveTo(x+w*.45,y+h*.32,x+w*.42,y+h*.56,x+w*.61,y+h*.82);ctx.stroke();
+      for(let i=0;i<5;i++){const tx=x+w*(.43+i*.035),ty=y+h*(.2+(i%2)*.12);ctx.fillStyle='#445842';ctx.fillRect(tx-8,ty,16,19);ctx.fillStyle='#364c39';ctx.fillRect(tx-18,ty-15,36,23);ctx.fillStyle='#63774d';ctx.fillRect(tx-12,ty-24,24,16);}
+      for(let i=0;i<4;i++){ctx.fillStyle='#514e40';ctx.fillRect(x+w*.57+i*9,y+h*.72+(i%2)*5,19,10);ctx.fillStyle='#93866e';ctx.fillRect(x+w*.57+i*9+4,y+h*.72+(i%2)*5-3,10,5);}
+      ctx.restore();ctx.strokeStyle='rgba(24,33,27,.55)';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);
+    }
+    function banner(x,y,color,accent,s=1){ctx.fillStyle='#d2c49f';ctx.fillRect(x+22*s,y-27*s,2*s,32*s);ctx.fillStyle=color;ctx.fillRect(x+24*s,y-26*s,13*s,10*s);ctx.fillStyle=accent;ctx.fillRect(x+27*s,y-24*s,4*s,6*s);}
+    function drawUnit(u,i,s=1,small=false){
+      const team=u.team, body=u.color, accent=u.trim, n=small?8:16, gap=small?5:8;
+      if(i===selected){ctx.beginPath();ctx.ellipse(u.x,u.y+4*s,small?30:43*s,small?19:31*s,0,0,Math.PI*2);ctx.strokeStyle=gold;ctx.lineWidth=2;ctx.stroke();}
+      ctx.fillStyle='rgba(18,23,19,.3)';ctx.fillRect(u.x-29*s,u.y+15*s,58*s,4*s);
+      for(let k=0;k<n;k++){
+        const col=k%4,row=Math.floor(k/4),px=u.x+(col-1.5)*gap*s,py=u.y+(row-1)*gap*.85*s;
+        ctx.fillStyle=body;ctx.fillRect(px-3*s,py-4*s,7*s,8*s);ctx.fillStyle=accent;ctx.fillRect(px-2*s,py-7*s,5*s,3*s);ctx.fillStyle='#d0b89b';ctx.fillRect(px-1.5*s,py-10*s,4*s,3*s);
+        if(i%4===0&&k%3===0){ctx.fillStyle='#b8ad8d';ctx.fillRect(px+4*s,py-9*s,1.3*s,15*s);}
+      }
+      banner(u.x,u.y,team?'#994e43':'#718b8e',accent,s);
+      label(u.name,u.x,u.y+34*s,small?8:11,'#f0e5c7','center');
+      ctx.fillStyle='#302d27';ctx.fillRect(u.x-22*s,u.y+42*s,44*s,3*s);ctx.fillStyle=gold;ctx.fillRect(u.x-22*s,u.y+42*s,44*s*u.morale/100,3*s);
+    }
+    function desktop(){
+      ctx.save();ctx.scale(W/1280,H/720);
+      ctx.fillStyle=dark;ctx.fillRect(0,0,1280,720);
+      field(0,78,1280,494);
+      // Header and campaign readout
+      ctx.fillStyle='#202723';ctx.fillRect(0,0,1280,78);ctx.fillStyle='#9b8758';ctx.fillRect(0,74,1280,4);
+      box(18,15,42,42,'#9d794f');box(23,20,32,32,'#343a34');label('C',39,37,22,gold,'center');
+      label('CROWN & BANNER',72,28,17,paper);label('ASHES OF VEYR  /  FIELD TEST',72,51,10,muted);
+      ctx.fillStyle='#665f4e';ctx.fillRect(371,18,1,42);label('HIGH SUMMER  •  DAY 1',390,30,13,gold);label('GREY MARCH  162   VS   162  RED FEN',390,51,12,paper);
+      ctx.fillStyle='#353a32';ctx.fillRect(770,21,174,13);ctx.fillStyle='#788b80';ctx.fillRect(770,21,87,13);ctx.fillStyle='#98584a';ctx.fillRect(857,21,87,13);label('FIELD ADVANTAGE',770,51,10,muted);
+      box(1016,12,72,52,'#303833','#665f4e');label(paused?'▶':'Ⅱ',1052,27,17);label('PAUSE',1052,49,9,muted,'center');
+      box(1096,12,72,52,'#303833','#665f4e');label('½×',1132,27,17);label('SLOW',1132,49,9,muted,'center');
+      box(1176,12,88,52,'#303833','#665f4e');label(fast?'2×':'1×',1220,27,17);label('SPEED',1220,49,9,muted,'center');
+      units.forEach((u,i)=>drawUnit(u,i,1,false));
+      box(0,580,1280,140,'#202723');ctx.fillStyle='#9b8758';ctx.fillRect(0,580,1280,2);label('YOUR REGIMENTS',18,578,9,gold);
+      for(let i=0;i<4;i++){const x=18+i*151,u=units[i],active=i===selected;box(x,590,143,110,active?'#343d37':'#292f2b',active?gold:'#5d6658');ctx.fillStyle=u.color;ctx.fillRect(x+10,602,17,17);ctx.fillStyle=u.trim;ctx.fillRect(x+14,606,9,9);label(u.name,x+34,614,10,paper);label(`${u.count} soldiers`,x+10,638,12);label(u.order,x+10,658,9,gold);ctx.fillStyle='#171d1a';ctx.fillRect(x+10,666,120,6);ctx.fillStyle=gold;ctx.fillRect(x+10,666,120*u.morale/100,6);label(`MORALE  ${u.morale}%`,x+10,687,9,muted);}
+      const acts=['⚔  ATTACK','▤  HOLD','➤  CHARGE','↗  FIRE AT WILL'];for(let i=0;i<4;i++){const x=662+i*144;box(x,590,132,50,units[selected].order===acts[i].split('  ')[1]?'#60553c':'#303833','#665f4e');label(acts[i],x+66,616,11,paper,'center');}
+      box(662,648,132,50,'#303833','#665f4e');label('+  RALLY',728,674,11,paper,'center');label(`SELECTED: ${selected<4?'LINE HOLDERS':'ENEMY'}   •   AIM FOR MORALE BREAK`,820,674,11,muted);
+      box(405,91,470,34,'rgba(24,31,26,.88)','#716342');label('The Grey March meets the Red Fen. Your orders decide the field.',640,108,12,paper,'center');
+      label(`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(Math.floor(elapsed)%60).padStart(2,'0')}`,1190,559,12,paper,'right');
+      if(paused){box(495,244,290,102,'#252c29',gold);label('BATTLE PAUSED',640,280,20,paper,'center');label('Tap the pause button to resume',640,316,12,muted,'center');}
+      ctx.restore();
+    }
+    function mobileDraw(){
+      ctx.fillStyle=dark;ctx.fillRect(0,0,W,H);
+      const head=78, foot=190, fy=head+4, fh=Math.max(300,H-foot-fy);
+      ctx.fillStyle='#202723';ctx.fillRect(0,0,W,head);ctx.fillStyle='#9b8758';ctx.fillRect(0,head-3,W,3);
+      box(12,13,38,42,'#9d794f');box(16,17,30,30,'#343a34');label('C',31,33,20,gold,'center');
+      label('CROWN & BANNER',60,25,15,paper);label('ASHES OF VEYR  /  FIELD TEST',60,47,9,muted);
+      box(W-78,13,66,50,'#303833','#665f4e');label(paused?'▶':'Ⅱ',W-45,29,16,paper,'center');label('PAUSE',W-45,48,8,muted,'center');
+      field(0,fy,W,fh);
+      label('HIGH SUMMER  •  DAY 1',W/2,fy+17,10,gold,'center');
+      box(W/2-106,fy+29,212,21,'rgba(30,37,31,.82)');label('GREY MARCH   162  :  162   RED FEN',W/2,fy+40,9,paper,'center');
+      const pts=[[.16,.33],[.34,.59],[.19,.79],[.39,.38],[.84,.34],[.67,.61],[.82,.8],[.63,.4]];
+      units.forEach((u,i)=>{const [px,py]=pts[i];u.x=W*px;u.y=fy+fh*py;drawUnit(u,i,.68,true);});
+      const top=H-foot;ctx.fillStyle='#202723';ctx.fillRect(0,top,W,foot);ctx.fillStyle='#9b8758';ctx.fillRect(0,top,W,2);label('YOUR REGIMENTS',14,top+14,9,gold);
+      for(let i=0;i<4;i++){const col=i%2,row=Math.floor(i/2),x=12+col*(W/2-5),y=top+25+row*53,cw=W/2-19;box(x,y,cw,47,i===selected?'#3b443b':'#292f2b',i===selected?gold:'#5d6658');ctx.fillStyle=units[i].color;ctx.fillRect(x+8,y+9,10,10);label(units[i].name,x+24,y+12,9,paper);label(`${units[i].order}  ·  MORALE ${units[i].morale}%`,x+8,y+32,8,muted);}
+      const labels=['ATTACK','HOLD','CHARGE','RALLY'],bw=(W-30)/4,by=H-53;
+      labels.forEach((v,i)=>{const x=10+i*(bw+3);box(x,by,bw,40,i===1?'#60553c':'#303833','#665f4e');label(v,x+bw/2,by+21,8,paper,'center');});
+      if(paused){box(28,H*.42,W-56,78,'#252c29',gold);label('BATTLE PAUSED',W/2,H*.42+28,16,paper,'center');label('Tap pause to resume',W/2,H*.42+54,10,muted,'center');}
+    }
+    function resize(){const r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);mobile=W<700;render();}
+    function render(){if(!W||!H)return;if(mobile)mobileDraw();else desktop();canvas.dataset.previewReady='true';}
+    function interact(e){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(mobile){const top=H-190;if(y<78&&x>W-86){paused=!paused;}else if(y>top+25&&y<top+130){const col=x<W/2?0:1,row=y>top+78?1:0;selected=Math.min(3,row*2+col);}else if(y>H-58){const a=Math.min(3,Math.floor((x-10)/(W/4)));units[selected].order=['ATTACK','HOLD','CHARGE','HOLD'][a];}else if(y>78&&y<H-190){selected=x<W/2?0:4;}}
+      else{if(y<75&&x>1000&&x<1092)paused=!paused;else if(y<75&&x>1170)fast=!fast;else if(y>590&&x<625)selected=Math.max(0,Math.min(3,Math.floor((x-18)/151)));else if(y>590&&x>650){const a=Math.floor((x-662)/144);if(a>=0&&a<4)units[selected].order=['ATTACK','HOLD','CHARGE','FIRE'][a];}}
+      render();}
+    canvas.addEventListener('pointerup',interact);window.addEventListener('resize',resize);
+    function tick(now){const dt=Math.min(.06,(now-last)/1000);last=now;if(!paused){elapsed+=dt*(fast?2:1);units.forEach((u,i)=>{if(u.team&&u.x>W*.54){u.x-=dt*u.speed*(fast?2:1);if(u.x<W*.56)u.x=W*.56;} });}render();requestAnimationFrame(tick);}
+    resize();requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
